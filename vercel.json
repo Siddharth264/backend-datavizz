@@ -5,10 +5,7 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "main.py" }
-  ],
-  "env": {
-    "MONGO_URI": "mongodb+srv://sidsingh264:siddharth@datavizz.v6il78s.mongodb.net/?retryWrites=true&w=majority&appName=datavizz"
-  }
+  ]
 }
 
   
