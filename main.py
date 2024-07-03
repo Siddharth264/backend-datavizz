@@ -6,8 +6,10 @@ import json
 import os
 from collections import defaultdict
 import random
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.config["MONGO_URI"] = 'mongodb+srv://sidsingh264:siddharth@datavizz.v6il78s.mongodb.net/datavizz?retryWrites=true&w=majority&appName=datavizz'
 
 mongo = PyMongo(app)
