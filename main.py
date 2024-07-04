@@ -10,6 +10,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+
 app.config["MONGO_URI"] = 'mongodb+srv://sidsingh264:siddharth@datavizz.v6il78s.mongodb.net/datavizz?retryWrites=true&w=majority&appName=datavizz'
 
 mongo = PyMongo(app)
@@ -77,23 +78,34 @@ def get_data_summary():
             
             for entry in data:
                 region = entry.get('region')
-                country = entry.get('country')
+                sector = entry.get('sector')
                 
-                # Skip entries with empty region or country
-                if not region or not country:
+                # Skip entries with empty region or sector
+                if not region or not sector:
                     continue
                 
-                region_summary[region][country] += 1
+                region_summary[region][sector] += 1
             
             summary = []
-            for region, countries in region_summary.items():
-                region_data = {'region': region}
-                for country, count in countries.items():
-                    region_data[country] = count
-                    region_data[f"{country}Color"] = f"hsl({random.randint(0, 360)}, 70%, 50%)"
-                summary.append(region_data)
+            for region, sectors in region_summary.items():
+                region_data = [('region', region)]  # Start with region as the first tuple
+                for sector, count in sectors.items():
+                    region_data.append((sector, count))
+                    region_data.append((f"{sector}Color", f"hsl({random.randint(0, 360)}, 70%, 50%)"))
+                summary.append(dict(region_data))  # Convert list of tuples to dict
             
             return jsonify(summary), 200
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+@app.route('/data/sectors', methods=['GET'])
+def get_distinct_sectors():
+    try:
+        if db is not None:
+            sectors = db.datavizz.distinct('sector', {'sector': {'$ne': ''}})
+            return jsonify(sectors), 200
         else:
             return jsonify({'error': 'Database connection error'}), 500
     except Exception as e:
