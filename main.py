@@ -143,6 +143,33 @@ def get_country_data():
             return jsonify({'error': 'Database connection error'}), 500
     except Exception as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500
+    
+@app.route('/data/pestles', methods=['GET'])
+def get_pestle_data():
+    try:
+        if db is not None:
+            data = db.datavizz.find()
+            pestle_counts = defaultdict(int)
+            for entry in data:
+                pestle = entry.get('pestle')
+                if pestle:
+                    pestle_counts[pestle] += 1
+
+            result = [
+                {
+                    'id': pestle,
+                    'label': pestle,
+                    'value': count,
+                    'color': f'hsl({random.randint(0, 360)}, 70%, 50%)'
+                } for pestle, count in pestle_counts.items()
+            ]
+            result = sorted(result, key=lambda x: x['value'], reverse=True)[:6]
+            return jsonify(result), 200
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
 
 def load_data_to_mongodb(file_path):
     try:
