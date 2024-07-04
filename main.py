@@ -94,22 +94,34 @@ def get_data_summary():
                     region_data.append((f"{sector}Color", f"hsl({random.randint(0, 360)}, 70%, 50%)"))
                 summary.append(dict(region_data))  # Convert list of tuples to dict
             
+            # Sort regions by total papers and get the top 7
+            summary = sorted(summary, key=lambda x: sum([v for k, v in x.items() if k != 'region' and not k.endswith('Color')]), reverse=True)[:7]
+            
             return jsonify(summary), 200
         else:
             return jsonify({'error': 'Database connection error'}), 500
     except Exception as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500
 
+
 @app.route('/data/sectors', methods=['GET'])
 def get_distinct_sectors():
     try:
         if db is not None:
-            sectors = db.datavizz.distinct('sector', {'sector': {'$ne': ''}})
-            return jsonify(sectors), 200
+            pipeline = [
+                {'$match': {'sector': {'$ne': ''}}},
+                {'$group': {'_id': '$sector', 'count': {'$sum': 1}}},
+                {'$sort': {'count': -1}},
+                {'$limit': 6}
+            ]
+            sectors = list(db.datavizz.aggregate(pipeline))
+            result = [{'sector': s['_id'], 'count': s['count']} for s in sectors]
+            return jsonify(result), 200
         else:
             return jsonify({'error': 'Database connection error'}), 500
     except Exception as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500
+
 
 def load_data_to_mongodb(file_path):
     try:
