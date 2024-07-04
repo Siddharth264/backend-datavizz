@@ -122,6 +122,27 @@ def get_distinct_sectors():
     except Exception as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500
 
+@app.route('/data/countries', methods=['GET'])
+def get_country_data():
+    try:
+        if db is not None:
+            data = db.datavizz.find()
+            # Load country IDs from the uploaded JSON file
+            with open('country_ids.json', 'r', encoding='utf-8') as file:
+                country_ids = json.load(file)
+            
+            country_paper_counts = defaultdict(int)
+            for entry in data:
+                country = entry.get('country')
+                if country and country in country_ids:
+                    country_paper_counts[country_ids[country]] += 1
+
+            result = [{'id': country_id, 'value': count} for country_id, count in country_paper_counts.items()]
+            return jsonify(result), 200
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
 
 def load_data_to_mongodb(file_path):
     try:
