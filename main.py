@@ -170,7 +170,7 @@ def get_pestle_data():
     except Exception as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500
 
-@app.route('/data/sectors', methods=['GET'])
+@app.route('/data/sectorspie', methods=['GET'])
 def get_sector_data():
     try:
         if db is not None:
