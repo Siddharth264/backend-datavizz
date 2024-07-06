@@ -144,6 +144,98 @@ def get_country_data():
     except Exception as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500
     
+
+@app.route('/data/countries_relevance', methods=['GET'])
+def get_country_relevance():
+    try:
+        if db is not None:
+            pipeline = [
+                {'$match': {'country': {'$ne': ''}}},  # Filter out documents where country is empty
+                {'$group': {'_id': '$country', 'relevance_score': {'$sum': '$relevance'}}}
+            ]
+            country_relevance = list(db.datavizz.aggregate(pipeline))
+            
+            result = [{'country': entry['_id'], 'relevance_score': entry['relevance_score']} for entry in country_relevance]
+            result = sorted(result, key=lambda x: x['relevance_score'], reverse=True)
+
+            return jsonify(result), 200
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500             
+
+@app.route('/data/metrics', methods=['GET'])
+def get_country_metrics():
+    try:
+        if db is not None:
+            pipeline = [
+                {"$match": {"$and": [
+                    {"country": {"$ne": ""}},
+                    {"topic": {"$ne": ""}},
+                    {"sector": {"$ne": ""}},
+                    {"pestle": {"$ne": ""}}
+                ]}},
+                {"$group": {
+                    "_id": "$country",
+                    "total_relevance": {"$sum": "$relevance"},
+                    "total_intensity": {"$sum": "$intensity"},
+                    "most_frequent_topic": {"$push": "$topic"},
+                    "most_frequent_sector": {"$push": "$sector"},
+                    "most_frequent_pestle": {"$push": "$pestle"}
+                }},
+                {"$addFields": {
+                    "most_frequent_topic": {"$arrayElemAt": ["$most_frequent_topic", 0]},
+                    "most_frequent_sector": {"$arrayElemAt": ["$most_frequent_sector", 0]},
+                    "most_frequent_pestle": {"$arrayElemAt": ["$most_frequent_pestle", 0]}
+                }},
+                {"$project": {
+                    "_id": 0,
+                    "country": "$_id",
+                    "total_relevance": 1,
+                    "total_intensity": 1,
+                    "most_frequent_topic": 1,
+                    "most_frequent_sector": 1,
+                    "most_frequent_pestle": 1
+                }}
+            ]
+
+            country_metrics = list(db.datavizz.aggregate(pipeline))
+            if country_metrics:
+                return jsonify(country_metrics), 200
+            else:
+                return jsonify({'error': 'No data available'}), 404
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+@app.route('/data/topics', methods=['GET'])
+def get_topic_data():
+    try:
+        if db is not None:
+            data = db.datavizz.find()
+            topic_counts = defaultdict(int)
+            for entry in data:
+                topic = entry.get('topic')
+                if topic:
+                    topic_counts[topic] += 1
+
+            result = [
+                {
+                    'id': topic,
+                    'label': topic,
+                    'value': count,
+                    'color': f'hsl({random.randint(0, 360)}, 70%, 50%)'
+                } for topic, count in topic_counts.items()
+            ]
+            result = sorted(result, key=lambda x: x['value'], reverse=True)[:6]
+            return jsonify(result), 200
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+
 @app.route('/data/pestles', methods=['GET'])
 def get_pestle_data():
     try:
