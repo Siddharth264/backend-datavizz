@@ -7,7 +7,7 @@ import os
 from collections import defaultdict
 import random
 from flask_cors import CORS
-
+from datetime import datetime
 app = Flask(__name__)
 CORS(app)
 
@@ -236,6 +236,31 @@ def get_topic_data():
         return jsonify({'error': f'Database error: {str(e)}'}), 500
 
 
+@app.route('/data/time_series', methods=['GET'])
+def get_time_series_data():
+    try:
+        if db is not None:
+            data = db.datavizz.find({}, {'published': 1})  # Retrieve only the published field
+            year_counts = defaultdict(int)
+            for entry in data:
+                date_str = entry.get('published')
+                if date_str:
+                    try:
+                        # Parse date assuming format is 'January, 20 2017 03:51:25'
+                        date_obj = datetime.strptime(date_str, '%B, %d %Y %H:%M:%S')
+                        year_counts[date_obj.year] += 1
+                    except ValueError:
+                        # Handle cases where the date format is different
+                        continue
+            # Sort the data by year
+            sorted_data = sorted(year_counts.items())
+            result = [{'year': year, 'count': count} for year, count in sorted_data]
+            return jsonify(result), 200
+        else:
+            return jsonify({'error': 'Database connection error'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    
 @app.route('/data/pestles', methods=['GET'])
 def get_pestle_data():
     try:
