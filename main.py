@@ -14,7 +14,7 @@ CORS(app)
 app.config["MONGO_URI"] = 'mongodb+srv://sidsingh264:siddharth@datavizz.v6il78s.mongodb.net/datavizz?retryWrites=true&w=majority&appName=datavizz'
 
 mongo = PyMongo(app)
-db = mongo.db  # Access the database through the PyMongo instance
+db = mongo.db 
 
 if db is not None:
     print("Connected to MongoDB.")
@@ -57,11 +57,8 @@ def get_data_by_fields():
             fields = request.args.getlist('field')
             if not fields:
                 return jsonify({'error': 'No fields specified'}), 400
-
-            # Build the projection dictionary
+        
             projection = {field: 1 for field in fields}
-            
-            # Query the database with projection and limit
             data = db.datavizz.find({}, projection).limit(50)
             return dumps(data), 200
         else:
@@ -79,8 +76,7 @@ def get_data_summary():
             for entry in data:
                 region = entry.get('region')
                 sector = entry.get('sector')
-                
-                # Skip entries with empty region or sector
+               
                 if not region or not sector:
                     continue
                 
@@ -88,13 +84,12 @@ def get_data_summary():
             
             summary = []
             for region, sectors in region_summary.items():
-                region_data = [('region', region)]  # Start with region as the first tuple
+                region_data = [('region', region)] 
                 for sector, count in sectors.items():
                     region_data.append((sector, count))
                     region_data.append((f"{sector}Color", f"hsl({random.randint(0, 360)}, 70%, 50%)"))
-                summary.append(dict(region_data))  # Convert list of tuples to dict
+                summary.append(dict(region_data))  
             
-            # Sort regions by total papers and get the top 7
             summary = sorted(summary, key=lambda x: sum([v for k, v in x.items() if k != 'region' and not k.endswith('Color')]), reverse=True)[:7]
             
             return jsonify(summary), 200
@@ -127,7 +122,6 @@ def get_country_data():
     try:
         if db is not None:
             data = db.datavizz.find()
-            # Load country IDs from the uploaded JSON file
             with open('country_ids.json', 'r', encoding='utf-8') as file:
                 country_ids = json.load(file)
             
@@ -150,7 +144,7 @@ def get_country_relevance():
     try:
         if db is not None:
             pipeline = [
-                {'$match': {'country': {'$ne': ''}}},  # Filter out documents where country is empty
+                {'$match': {'country': {'$ne': ''}}},  
                 {'$group': {'_id': '$country', 'relevance_score': {'$sum': '$relevance'}}}
             ]
             country_relevance = list(db.datavizz.aggregate(pipeline))
@@ -240,19 +234,16 @@ def get_topic_data():
 def get_time_series_data():
     try:
         if db is not None:
-            data = db.datavizz.find({}, {'published': 1})  # Retrieve only the published field
+            data = db.datavizz.find({}, {'published': 1})
             year_counts = defaultdict(int)
             for entry in data:
                 date_str = entry.get('published')
                 if date_str:
                     try:
-                        # Parse date assuming format is 'January, 20 2017 03:51:25'
                         date_obj = datetime.strptime(date_str, '%B, %d %Y %H:%M:%S')
                         year_counts[date_obj.year] += 1
                     except ValueError:
-                        # Handle cases where the date format is different
                         continue
-            # Sort the data by year
             sorted_data = sorted(year_counts.items())
             result = [{'year': year, 'count': count} for year, count in sorted_data]
             return jsonify(result), 200
